@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATM Withdrawal Calculator by @heyianc</title>
+<meta name="description" content="Calculate how much PHP you'll be charged when withdrawing foreign currency abroad using GCash, MariBank, GoTyme, or Maya cards.">
+<meta property="og:title" content="ATM Withdrawal Calculator by @heyianc">
+<meta property="og:description" content="Find out exactly how much PHP you'll be charged for overseas ATM withdrawals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; background: #f5f5f7; color: #1a1a2e; -webkit-font-smoothing: antialiased; }
+  .app { max-width: 460px; margin: 0 auto; padding: 24px 16px; min-height: 100vh; }
+  .header { margin-bottom: 28px; }
+  .header-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6b7280; margin-bottom: 6px; }
+  .header h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
+  .header-byline { font-size: 13px; font-weight: 600; color: #6b7280; margin-top: 6px; }
+  .header-byline span { color: #0050AE; font-weight: 700; }
+  .section-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 10px; }
+  .section { margin-bottom: 24px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-btn { padding: 14px 12px; border-radius: 14px; border: 2.5px solid transparent; background: #f8f9fa; cursor: pointer; text-align: left; position: relative; overflow: hidden; transition: all 0.2s ease; font-family: inherit; }
+  .card-btn.selected { border-color: var(--card-color); }
+  .card-btn .card-icon { font-size: 20px; margin-bottom: 6px; }
+  .card-btn .card-name { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; color: #1a1a2e; }
+  .card-btn.selected .card-name { color: var(--card-color); }
+  .card-btn .card-meta { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  .card-btn .card-fee { font-size: 10px; color: #dc2626; font-weight: 600; margin-top: 3px; }
+  .card-btn .card-check { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border-radius: 50%; display: none; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
+  .card-btn.selected .card-check { display: flex; }
+  .currency-trigger { width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid #e5e7eb; background: #f8f9fa; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 600; color: #1a1a2e; font-family: inherit; }
+  .currency-trigger .arrow { font-size: 12px; opacity: 0.5; }
+  .currency-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 12px 40px rgba(0,0,0,0.12); z-index: 100; max-height: 280px; overflow: hidden; display: none; flex-direction: column; }
+  .currency-dropdown.open { display: flex; }
+  .currency-dropdown input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #e5e7eb; font-size: 14px; outline: none; background: #f8f9fa; color: #1a1a2e; box-sizing: border-box; font-family: inherit; }
+  .currency-dropdown .search-wrap { padding: 8px; }
+  .currency-list { overflow-y: auto; flex: 1; }
+  .currency-option { width: 100%; padding: 10px 16px; border: none; background: transparent; cursor: pointer; text-align: left; font-size: 14px; color: #1a1a2e; display: flex; align-items: center; gap: 10px; font-family: inherit; }
+  .currency-option:hover { background: #f0f0f5; }
+  .currency-option .flag { font-size: 18px; }
+  .currency-option .code { font-weight: 600; }
+  .currency-option .name { opacity: 0.6; font-size: 13px; }
+  .amount-wrap { position: relative; }
+  .amount-input { width: 100%; padding: 14px 70px 14px 16px; border-radius: 12px; border: 2px solid #e5e7eb; background: #f8f9fa; font-size: 20px; font-weight: 700; color: #1a1a2e; outline: none; letter-spacing: -0.02em; font-feature-settings: 'tnum'; font-family: inherit; }
+  .amount-suffix { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 700; color: #6b7280; }
+  .rate-bar { padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; display: none; justify-content: space-between; align-items: center; }
+  .rate-bar.visible { display: flex; }
+  .rate-bar .rate-label { font-size: 11px; color: #6b7280; font-weight: 600; }
+  .rate-bar .rate-value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .rate-bar .rate-meta { font-size: 10px; color: #6b7280; text-align: right; line-height: 1.4; }
+  .rate-status { padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-size: 13px; font-weight: 600; display: none; }
+  .rate-status.visible { display: block; }
+  .rate-status.loading { background: #f0f0f5; color: #6b7280; }
+  .rate-status.error { background: #FEF2F2; border: 1px solid #FECACA; color: #dc2626; }
+  .panel { background: #ffffff; border-radius: 16px; border: 1.5px solid #e5e7eb; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); display: none; }
+  .panel.visible { display: block; }
+  .panel-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 12px; }
+  .breakdown-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-bottom: 1px solid #f0f0f5; }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .row-label { font-size: 13px; font-weight: 500; }
+  .breakdown-row .row-sublabel { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .breakdown-row .row-value { font-size: 14px; font-weight: 600; font-feature-settings: 'tnum'; letter-spacing: -0.02em; text-align: right; min-width: 90px; }
+  .total-divider { margin-top: 8px; padding-top: 14px; }
+  .total-row .row-label { font-size: 15px; font-weight: 700; }
+  .total-row .row-value { font-size: 18px; font-weight: 800; }
+  .compare-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 10px; margin-bottom: 4px; border: 1.5px solid transparent; }
+  .compare-item.active { border-color: rgba(0,0,0,0.08); }
+  .compare-left { display: flex; align-items: center; gap: 8px; }
+  .compare-icon { font-size: 16px; }
+  .compare-name { font-size: 13px; font-weight: 600; }
+  .compare-meta { font-size: 10px; color: #6b7280; }
+  .compare-total { font-size: 14px; font-weight: 700; font-feature-settings: 'tnum'; text-align: right; }
+  .compare-cheapest { font-size: 10px; color: #16a34a; font-weight: 700; }
+  .disclaimer { padding: 14px 16px; border-radius: 12px; background: #FEF3C7; border: 1px solid rgba(245,158,11,0.25); margin-bottom: 16px; }
+  .disclaimer-title { font-size: 12px; font-weight: 700; color: #92400E; margin-bottom: 4px; }
+  .disclaimer-text { font-size: 11.5px; color: #78350F; line-height: 1.5; }
+  .promo-panel { border-radius: 16px; border: 1.5px solid #e5e7eb; padding: 20px; margin-bottom: 16px; background: #ffffff; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  .promo-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 6px; }
+  .promo-subtitle { font-size: 11.5px; color: #6b7280; margin-bottom: 14px; }
+  .promo-btn { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 12px; margin-bottom: 10px; text-decoration: none; transition: all 0.2s ease; cursor: pointer; }
+  .promo-btn:last-child { margin-bottom: 0; }
+  .promo-btn .promo-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+  .promo-btn .promo-detail { font-size: 11.5px; color: #6b7280; margin-top: 2px; }
+  .promo-btn .promo-code { font-size: 12px; color: #6b7280; margin-top: 3px; }
+  .promo-btn .promo-code span { font-weight: 700; letter-spacing: 0.03em; }
+  .promo-btn .promo-cta { font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .website-cta { display: block; text-align: center; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, #0050AE, #00A3E0); margin-bottom: 16px; text-decoration: none; transition: all 0.2s ease; }
+  .website-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,80,174,0.3); }
+  .website-cta .cta-sub { font-size: 13px; color: rgba(255,255,255,0.8); margin-bottom: 2px; }
+  .website-cta .cta-main { font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; }
+  .footer { text-align: center; font-size: 10px; color: #9ca3af; padding: 8px 0 16px; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .loading-pulse { animation: pulse 1.5s infinite; }
+  @media (max-width: 380px) { .card-grid { grid-template-columns: 1fr; } .header h1 { font-size: 22px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-label">ATM Withdrawal Calculator</div>
+    <h1>How much PHP will<br>you be charged? 🏧</h1>
+    <div class="header-byline">by <span>@heyianc</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">① Select your card</div>
+    <div class="card-grid" id="cardGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">② Select foreign currency</div>
+    <div style="position:relative">
+      <button class="currency-trigger" id="currencyTrigger" onclick="toggleCurrencyDropdown()">
+        <span id="currencyLabel">Select currency...</span>
+        <span class="arrow" id="currencyArrow">▼</span>
+      </button>
+      <div class="currency-dropdown" id="currencyDropdown">
+        <div class="search-wrap"><input type="text" placeholder="Search currency..." id="currencySearch" oninput="filterCurrencies()"></div>
+        <div class="currency-list" id="currencyList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:28px">
+    <div class="section-label">③ Amount to withdraw</div>
+    <div class="amount-wrap">
+      <input type="number" inputmode="decimal" placeholder="0.00" class="amount-input" id="amountInput" oninput="compute()">
+      <span class="amount-suffix" id="amountSuffix" style="display:none"></span>
+    </div>
+  </div>
+
+  <div class="rate-status loading" id="rateLoading"><span class="loading-pulse">⏳ Fetching Google exchange rate...</span></div>
+  <div class="rate-status error" id="rateError">❌ Could not fetch rate. Please try again later.</div>
+  <div class="rate-bar" id="rateBar">
+    <div>
+      <div class="rate-label">Google Exchange Rate</div>
+      <div class="rate-value" id="rateValue"></div>
+    </div>
+    <div class="rate-meta" id="rateMeta"></div>
+  </div>
+
+  <div class="panel" id="breakdownPanel">
+    <div class="panel-title">Breakdown</div>
+    <div id="breakdownRows"></div>
+  </div>
+
+  <div class="panel" id="comparePanel">
+    <div class="panel-title">Quick Compare — All Cards</div>
+    <div id="compareRows"></div>
+  </div>
+
+  <div class="disclaimer">
+    <div class="disclaimer-title">⚠️ Important Notes</div>
+    <div class="disclaimer-text">
+      <strong>Exchange rates:</strong> This calculator uses Google mid-market rates. Actual Visa and Mastercard network rates may vary slightly from Google rates — typically within 0.1–0.5% — depending on the day and time of your transaction.<br><br>
+      <strong>ATM fees:</strong> ATM operators abroad may charge their own withdrawal fee on top of these costs. This fee varies by bank and country, and is separate from the card fees shown above.
+    </div>
+  </div>
+
+  <div class="promo-panel">
+    <div class="promo-title">🎁 Exclusive Promo Codes</div>
+    <div class="promo-subtitle">Save on your next trip with these codes from @heyianc</div>
+    <a href="https://ago-da.co/HEYIANCHOTEL" target="_blank" rel="noopener noreferrer" class="promo-btn" style="background:linear-gradient(135deg,rgba(26,86,219,0.06),rgba(26,86,219,0.02));border:1.5px solid rgba(26,86,219,0.15)">
+      <div><div class="promo-name">✅ Agoda Hotels — up to 10% off</div><div class="promo-code">🏷️ Code: <span style="color:#1a56db">HEYIANCHOTEL</span></div></div>
+      <div class="promo-cta" style="color:#1a56db">Claim →</div>
+    </a>
+    <a href="https://ago-da.co/HEYIANC" target="_blank" rel="noopener noreferrer" class="promo-btn" style="background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(124,58,237,0.02));border:1.5px solid rgba(124,58,237,0.15)">
+      <div><div class="promo-name">✅ Agoda Activities — up to 5% off</div><div class="promo-code">🏷️ Code: <span style="color:#7c3aed">HEYIANC</span></div></div>
+      <div class="promo-cta" style="color:#7c3aed">Claim →</div>
+    </a>
+    <a href="https://www.klook.com/coupons/?code=HEYIANCKLOOK" target="_blank" rel="noopener noreferrer" class="promo-btn" style="background:linear-gradient(135deg,rgba(234,88,12,0.06),rgba(234,88,12,0.02));border:1.5px solid rgba(234,88,12,0.15);margin-bottom:0">
+      <div><div class="promo-name">✅ Klook — up to 5% off</div><div class="promo-detail">Hotels, insurance, activities & more</div><div class="promo-code">🏷️ Code: <span style="color:#ea580c">HEYIANCKLOOK</span></div></div>
+      <div class="promo-cta" style="color:#ea580c">Claim →</div>
+    </a>
+  </div>
+
+  <a href="https://heyianc.com" target="_blank" rel="noopener noreferrer" class="website-cta">
+    <div class="cta-sub">For more detailed travel tips & guides, visit</div>
+    <div class="cta-main">heyianc.com ✈️</div>
+  </a>
+
+  <div class="footer">Rates from Google (mid-market) • Visa/Mastercard rates may vary • For estimation only</div>
+</div>
+
+<script>
+const CARDS = [
+  { id:"gcash", name:"GCash Visa", network:"visa", markup:0.005, markupLabel:"0.5%", atmFee:0, color:"#0050AE", accent:"#00A3E0", icon:"💙" },
+  { id:"maribank", name:"MariBank Mastercard", network:"mastercard", markup:0, markupLabel:"0%", atmFee:0, color:"#FF5F00", accent:"#EB001B", icon:"🧡" },
+  { id:"gotyme", name:"GoTyme Visa", network:"visa", markup:0.01, markupLabel:"1%", atmFee:0, color:"#6B21A8", accent:"#A855F7", icon:"💜" },
+  { id:"maya", name:"Maya Prepaid Visa", network:"visa", markup:0.0275, markupLabel:"2.75%", atmFee:200, atmFeeLabel:"₱200", color:"#059669", accent:"#34D399", icon:"💚" },
+];
+const CURRENCIES = [
+  { code:"USD", name:"US Dollar", flag:"🇺🇸" },{ code:"EUR", name:"Euro", flag:"🇪🇺" },
+  { code:"GBP", name:"British Pound", flag:"🇬🇧" },{ code:"JPY", name:"Japanese Yen", flag:"🇯🇵" },
+  { code:"KRW", name:"South Korean Won", flag:"🇰🇷" },{ code:"SGD", name:"Singapore Dollar", flag:"🇸🇬" },
+  { code:"HKD", name:"Hong Kong Dollar", flag:"🇭🇰" },{ code:"TWD", name:"Taiwan Dollar", flag:"🇹🇼" },
+  { code:"THB", name:"Thai Baht", flag:"🇹🇭" },{ code:"VND", name:"Vietnamese Dong", flag:"🇻🇳" },
+  { code:"MYR", name:"Malaysian Ringgit", flag:"🇲🇾" },{ code:"IDR", name:"Indonesian Rupiah", flag:"🇮🇩" },
+  { code:"AUD", name:"Australian Dollar", flag:"🇦🇺" },{ code:"CAD", name:"Canadian Dollar", flag:"🇨🇦" },
+  { code:"CNY", name:"Chinese Yuan", flag:"🇨🇳" },{ code:"AED", name:"UAE Dirham", flag:"🇦🇪" },
+  { code:"SAR", name:"Saudi Riyal", flag:"🇸🇦" },{ code:"NZD", name:"New Zealand Dollar", flag:"🇳🇿" },
+  { code:"CHF", name:"Swiss Franc", flag:"🇨🇭" },
+];
+
+let selectedCard = null, selectedCurrency = null, baseRate = null, rateTimestamp = null, dropdownOpen = false;
+let ratesCache = {};
+
+const fmt = n => n.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtRate = n => n.toLocaleString('en-PH',{minimumFractionDigits:4,maximumFractionDigits:4});
+
+async function fetchRate(currencyCode) {
+  const code = currencyCode.toLowerCase();
+  if (ratesCache[code] && (Date.now() - ratesCache[code].ts < 600000)) return ratesCache[code].rate;
+  const urls = [
+    `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${code}.min.json`,
+    `https://latest.currency-api.pages.dev/v1/currencies/${code}.min.json`
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const phpRate = data[code]?.php;
+      if (phpRate && phpRate > 0) { ratesCache[code] = { rate: phpRate, ts: Date.now() }; return phpRate; }
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+async function loadRate() {
+  if (!selectedCurrency) return;
+  const bar = document.getElementById('rateBar');
+  const loading = document.getElementById('rateLoading');
+  const error = document.getElementById('rateError');
+  bar.classList.remove('visible'); error.classList.remove('visible'); loading.classList.add('visible');
+  const rate = await fetchRate(selectedCurrency.code);
+  loading.classList.remove('visible');
+  if (rate) {
+    baseRate = rate; rateTimestamp = new Date();
+    document.getElementById('rateValue').textContent = `1 ${selectedCurrency.code} = ₱${fmtRate(baseRate)}`;
+    if (selectedCard) {
+      bar.style.background = `linear-gradient(135deg, ${selectedCard.color}08, ${selectedCard.accent}05)`;
+      bar.style.border = `1px solid ${selectedCard.color}20`;
+    } else { bar.style.background = '#f0f0f5'; bar.style.border = '1px solid #e5e7eb'; }
+    document.getElementById('rateMeta').innerHTML = `Updated just now<br>${rateTimestamp.toLocaleTimeString()}`;
+    bar.classList.add('visible'); compute();
+  } else { error.classList.add('visible'); baseRate = null; compute(); }
+}
+
+function renderCards() {
+  document.getElementById('cardGrid').innerHTML = CARDS.map(card => {
+    const sel = selectedCard && selectedCard.id === card.id;
+    return `<button class="card-btn ${sel?'selected':''}" style="--card-color:${card.color};${sel?`background:linear-gradient(135deg,${card.color}15,${card.accent}10)`:''}" onclick="selectCard('${card.id}')">
+      <div class="card-icon">${card.icon}</div><div class="card-name">${card.name}</div>
+      <div class="card-meta">${card.network==='visa'?'VISA':'MASTERCARD'} • ${card.markupLabel} markup</div>
+      ${card.atmFee>0?`<div class="card-fee">+ ${card.atmFeeLabel} ATM fee</div>`:''}
+      <div class="card-check" style="background:${card.color}">✓</div></button>`;
+  }).join('');
+}
+
+function selectCard(id) {
+  selectedCard = CARDS.find(c=>c.id===id); renderCards();
+  if (baseRate) {
+    const bar = document.getElementById('rateBar');
+    bar.style.background = `linear-gradient(135deg, ${selectedCard.color}08, ${selectedCard.accent}05)`;
+    bar.style.border = `1px solid ${selectedCard.color}20`;
+  }
+  compute();
+}
+
+function renderCurrencyList(filter='') {
+  const f = filter.toLowerCase();
+  const filtered = CURRENCIES.filter(c=>c.code.toLowerCase().includes(f)||c.name.toLowerCase().includes(f));
+  document.getElementById('currencyList').innerHTML = filtered.map(c=>`<button class="currency-option" onclick="selectCurrency('${c.code}')"><span class="flag">${c.flag}</span><span class="code">${c.code}</span><span class="name">${c.name}</span></button>`).join('');
+}
+
+function toggleCurrencyDropdown() {
+  dropdownOpen=!dropdownOpen;
+  document.getElementById('currencyDropdown').classList.toggle('open',dropdownOpen);
+  document.getElementById('currencyArrow').textContent=dropdownOpen?'▲':'▼';
+  if(dropdownOpen){document.getElementById('currencySearch').value='';renderCurrencyList();setTimeout(()=>document.getElementById('currencySearch').focus(),50);}
+}
+function filterCurrencies(){renderCurrencyList(document.getElementById('currencySearch').value);}
+
+function selectCurrency(code) {
+  selectedCurrency=CURRENCIES.find(c=>c.code===code);
+  document.getElementById('currencyLabel').textContent=`${selectedCurrency.flag} ${selectedCurrency.code} — ${selectedCurrency.name}`;
+  document.getElementById('amountSuffix').textContent=selectedCurrency.code;
+  document.getElementById('amountSuffix').style.display='';
+  dropdownOpen=false;document.getElementById('currencyDropdown').classList.remove('open');
+  document.getElementById('currencyArrow').textContent='▼';
+  baseRate=null; loadRate();
+}
+
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('currencyDropdown'),tr=document.getElementById('currencyTrigger');
+  if(dropdownOpen&&!dd.contains(e.target)&&!tr.contains(e.target)){dropdownOpen=false;dd.classList.remove('open');document.getElementById('currencyArrow').textContent='▼';}
+});
+
+function compute() {
+  const amount=parseFloat(document.getElementById('amountInput').value)||0;
+  const bp=document.getElementById('breakdownPanel'),cp=document.getElementById('comparePanel');
+  if(!selectedCard||!selectedCurrency||amount<=0||!baseRate){bp.classList.remove('visible');cp.classList.remove('visible');return;}
+
+  const baseConversion=amount*baseRate, markupAmount=baseConversion*selectedCard.markup;
+  const effectiveRate=baseRate*(1+selectedCard.markup), atmFee=selectedCard.atmFee||0;
+  const total=baseConversion+markupAmount+atmFee;
+
+  document.getElementById('breakdownRows').innerHTML=`
+    <div class="breakdown-row"><div><div class="row-label">Base Conversion</div><div class="row-sublabel">${fmt(amount)} ${selectedCurrency.code} × ₱${fmtRate(baseRate)}</div></div><div class="row-value">₱${fmt(baseConversion)}</div></div>
+    <div class="breakdown-row"><div><div class="row-label">Forex Markup (${selectedCard.markupLabel})</div><div class="row-sublabel">${selectedCard.name} cross-border fee</div></div><div class="row-value" style="color:${markupAmount>0?'#dc2626':'#16a34a'}">${markupAmount>0?'+ ':''}₱${fmt(markupAmount)}</div></div>
+    <div class="breakdown-row"><div><div class="row-label">Overseas ATM Fee</div><div class="row-sublabel">${atmFee>0?'Charged by '+selectedCard.name:selectedCard.name+' — no card ATM fee'}</div></div><div class="row-value" style="color:${atmFee>0?'#dc2626':'#16a34a'}">${atmFee>0?'+ ':''}₱${fmt(atmFee)}</div></div>
+    <div class="total-divider" style="border-top:2px solid ${selectedCard.color}30"><div class="breakdown-row total-row" style="border-bottom:none"><div><div class="row-label" style="color:${selectedCard.color}">Total PHP Charge</div><div class="row-sublabel">Effective rate: 1 ${selectedCurrency.code} = ₱${fmtRate(effectiveRate)}${atmFee>0?' + ATM fee':''}</div></div><div class="row-value" style="color:${selectedCard.color}">₱${fmt(total)}</div></div></div>`;
+  bp.classList.add('visible');
+
+  const totals=CARDS.map(card=>amount*baseRate*(1+card.markup)+(card.atmFee||0));
+  const minTotal=Math.min(...totals);
+  document.getElementById('compareRows').innerHTML=CARDS.map((card,i)=>{
+    const t=totals[i],isCheapest=t===minTotal,isActive=card.id===selectedCard.id;
+    return `<div class="compare-item ${isActive?'active':''}" style="${isActive?`background:${card.color}10;border-color:${card.color}30`:''}">
+      <div class="compare-left"><span class="compare-icon">${card.icon}</span><div><div class="compare-name">${card.name}</div><div class="compare-meta">${card.markupLabel} markup${card.atmFee>0?' + '+card.atmFeeLabel:''}</div></div></div>
+      <div><div class="compare-total" style="color:${isCheapest?'#16a34a':'#1a1a2e'}">₱${fmt(t)}</div>${isCheapest?'<div class="compare-cheapest">CHEAPEST</div>':''}</div></div>`;
+  }).join('');
+  cp.classList.add('visible');
+}
+
+renderCards(); renderCurrencyList();
+</script>
+</body>
+</html>
